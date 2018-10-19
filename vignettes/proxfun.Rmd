@@ -1,0 +1,300 @@
+---
+title: "Proximity-based Methods for Link Prediction"
+author:
+  - Bartosz Chroł (ICM, University of Warsaw)
+  - Michał Bojanowski (Kozminski University)
+institute: "ICM UW"
+date: "`r Sys.Date()`"
+bibliography: refs.bib
+output: 
+  rmarkdown::html_document:
+    toc: true
+    number_section: true
+  rmarkdown::pdf_document:
+    toc: true
+    number_section: true
+vignette: >
+  %\VignetteIndexEntry{Proximity-based Methods}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+
+Vertex proximity is a well developed subject in graph theory, applied in many different contexts. There are many different measures of similarity, some specific to social network analysis. Selection of methods used in this work follows mainly @kleinberg and @lu2011. All measures give similarity score between two vertices. Some measures are symmetrical by definition, some have to be modified to achieve symmetry. Similarities have different scales but absolute values are unimportant as scores are not be compared between methods, only rankings of scores are of interest.
+
+Similarity measures could be divided into local, global and quasi-local measures, following @lu2011. Local methods focus only on the properties of neighbourhoods of a given pair of vertices, while global methods benefit from information contained in the whole graph. Quasi-local methods are in between: make use of more information than local methods, but still do not need information about the whole graph.   
+
+Let us establish some notation used in sections below:
+
+- *Vertex set* is $V = \{1, 2, ..., x, y, ..., N\}$ where $x$ and $y$ are some generic vertices of interest
+- *Edge set* is $E = \{(x, y): x,y \in V\}$
+- *Graph* $G$ is defined by a pair $(V, E)$
+
+As we will be discussing computing of proximity measures in a given graph $G$, we will drop references to $G$ from the notation.
+
+- An *adjacency matrix* of $G$ is a matrix $A = [a_{xy}]_{N\times N}$ such that $a_{xy} = 1$ if $(x, y) \in E$ otherwise $a_{xy} = 0$.
+- A *set of neighbors* of vertex $x$ in graph $G$ is $\Gamma(x)$, namely $\Gamma(x) = \{y: (x, y) \in E\}$.
+- $k_x$ is the *degree* of vertex $x$ in graph $G$
+- *Proximity measure* $s_{xy}$ is a function $s_{xy}: G, x, y \mapsto \Re$.
+
+Other notation will be introduced below when needed.
+
+
+
+
+
+# Local methods
+
+These measures are mainly variations on Common neighbours.
+
+
+
+
+
+## Common neighbours
+
+Two vertices are more likely to be connected if they are connected to the same set of other vertices. [@newman2001] used this method in the study of collaboration networks, showing positive relation between number of common neighbours and probability of collaborating in the future.
+
+$$
+s_{xy}=\left| \Gamma(x) \cap \Gamma(y) \right|
+$$
+
+or in a matrix form
+
+\[
+s_{xy}=(A^2)_{xy}.
+\]
+
+
+
+## Salton Index (cosine similarity) 
+
+Due to @salton . It measures the cosine of the angle between columns of the adjacency matrix, corresponding to given vertices. This measure is commonly used in information retrieval.
+
+\[
+s_{xy}=\frac{|\Gamma(x)\cap\Gamma(y)|}{\sqrt{k_x\times k_y}}.
+\]
+
+
+
+## Jaccard Index 
+
+Jaccard Index [@jaccard] measures the proportion of common neighbours in the total number of neighbors. It reaches its maximum if $\Gamma(x)=\Gamma(y)$, namely all neighbours are common to both vertices.
+
+\[
+s_{xy}=\frac{|\Gamma(x)\cap\Gamma(y)|}{|\Gamma(x)\cup\Gamma(y)|}.
+\]
+
+
+## Sørensen Index
+
+Due to [@sorensen]. This method is similar to the Jaccard Index as it measures the relative size of an intersection of neighbours' sets.
+
+\[
+s_{xy}=\frac{2|\Gamma(x)\cap\Gamma(y)|}{k_x+k_y}.
+\]
+
+
+## Hub Promoted Index 
+
+Due to [@ravasz]. This measure assigns higher scores to links adjacent to hubs (high-degree vertices), as the denominator depends on the minimum of the degrees of the vertices of interest.
+
+\[
+s_{xy}=\frac{|\Gamma(x)\cap\Gamma(y)|}{\min\{k_x,k_y\}}.
+\]
+
+
+## Hub Depressed Index 
+
+Due to [@ravasz]. This measure, in contrast to Hub Promoted Index, assigns lower scores to links adjacent to hubs. It penalises large neighbourhoods.
+
+\[
+s_{xy}=\frac{|\Gamma(x)\cap\Gamma(y)|}{\max\{k_x,k_y\}}.
+\]
+
+
+## Leicht-Holme-Newman Index 
+
+Due to @leicht. It is a variant of Common Neighbours, similar to Salton Index.
+
+\[
+s_{xy}=\frac{|\Gamma(x) \cap \Gamma(y)|}{k_x \cdot k_y}.
+\]
+
+
+## Preferential Attachment 
+
+Preferential Attachment was developed as a model of the growth of network in a sense of new nodes emerging [@barabasi1999].
+
+\[
+s_{xy}=k_x \cdot k_y.
+\]
+
+
+## Adamic--Adar Index
+
+This measure develops simple counting of common neighbours by assigning weights to nodes inversely proportional to their degrees  [@adamic]. That means that a common neighbour, which is unique for a few nodes only, is more important than a hub. 
+
+\[
+s_{xy}=\sum_{z\in \Gamma(x)\cap\Gamma(y)}\frac{1}{\log k_z}.
+\]
+
+Note that this index is well defined, because when vertex $z$ is a common neighbour of $x$ and $y$, than its degree is at least 2.
+
+
+
+## Resource Allocation Index 
+
+Proposed by @zhou2009. This measure is motivated by a resource allocation process. It measures how much resource is transmitted between $x$ and $y$. 
+
+
+\[
+s_{xy}=\sum_{z\in \Gamma(x)\cap\Gamma(y)}\frac{1}{k_z}.
+\]
+
+
+
+
+# Global methods
+
+## Katz Index 
+
+[@katz] counts all the paths between given pair of nodes, with shorter paths counting more heavily.
+\[
+s_{xy}=\sum_{l=1}^{\infty}\beta^l|paths_{xy}^{<l>}|,
+\]
+
+where $\beta$ is a free parameter. The sum converges when $\beta$ is lower than the reciprocal of the largest eigenvalue of adjacency matrix. If this condition is satisfied Katz Index could be expressed in matrix form as
+
+\[
+S=(I-\beta A)^{-1}-I.
+\]
+
+
+## Leicht-Holme-Newman Index
+
+The global version [@leicht] is a variant of Katz Index, based on the concept that two nodes are similar if they neighbours are similar. It counts all paths between two nodes, but weights them by the expected number of such paths in a random graph with the same degree distribution. In matrix form, without constant factor:
+
+\[
+S = D^{-1}\left(I-\frac{\phi A}{\lambda_1}\right)^{-1}D^{-1},
+\]
+
+where $\lambda_1$ is the largest eigenvalue of adjacency matrix $A$ and $\phi$ is a free parameter.
+
+
+## Average Commute Time
+
+\[
+s_{xy}=\frac{1}{n(x,y)}=\frac{1}{m(x,y)+m(y,x)},
+\]
+
+where $m(x,y)$ is the average number of steps required by a random walker starting from $x$ to reach $y$. Sum of two directional commute times is taken to achieve symmetrical measure. Hence two nodes are similar if they are closer to each other and have smaller commute time, reciprocal is needed. Average Commute Time could be computed by solving collection of the linear equations, taken from Markov Chain analysis, but it is more straightforward to compute it in terms of the pseudoinverse of the Laplacian matrix, $L^{+}$. Namely:
+\[
+n_{xy}=2M(l^{+}_{xx}+l^{+}_{yy}-2l^{+}_{xy}),
+\]
+where $l^{+}_{xy}=[L^{+}]_{xy}$ and $M$ is the number of edges. Thanks to the special form of the Laplacian matrix, its pseudoinverse $L^{+}$ could be computed using formula [@fouss]:
+\[
+L^{+}=\left(L-\frac{ee^T}{n}\right)^{-1}+\frac{ee^T}{n},
+\]
+where $e$ is a column vector made of 1's. 
+
+
+
+## Normalized Average Commute Time 
+
+This is a variant of ACT, which takes into account node degrees, as for high--degree node (hub) $y$, $m(x,y)$ is usually small regardless of $x$.
+\[
+s_{xy}=\frac{1}{(m(x,y)\pi_y+m(y,x)\pi_x)},
+\]
+where $\pi$ is a stationary distribution of a Markov chain describing random walker on the graph. It is easily shown that on a connected graph
+\[
+\pi(x) = \frac{k_x}{\sum_y k_y}.
+\]
+
+
+## Cosine based on $L^{+}$ 
+
+[@fouss]
+
+\[
+s_{xy}=\frac{l_{xy}^{+}}{\sqrt{l_{xx}^{+}l_{yy}^{+}}}
+\]
+It measures the cosine of the angle between node vectors in a space spanned by columns of $L^{+}$.
+
+
+## Random Walk with Restart (RWR) 
+
+It is an adaptation of PageRank algorithm [@pagerank]. Consider random walker starting from node $x$ and periodically, with probability $\alpha$, returning to $x$. Let $q_x$ be a stationary distribution of Markov chain describing this walker. From definition of stationary distribution:
+\[
+q_x = (1-\alpha)P^T q_x + \alpha e_x,
+\]
+where $e_x$ is a unit vector with 1 on position corresponding to node $x$, and $P$ is a transition matrix describing ordinary random walker, $P_{xy}=1/k_x$ if $A_{xy}=1$ and $0$ otherwise. The solution for all nodes simultaneously is
+\[
+q =[q_1|q_2|\ldots|q_n] = \alpha(I-(1-\alpha)P^T)^{-1}.
+\]
+In order to achieve symmetry the RWR index is defined as
+\[
+s_{xy}=q_{xy}+q_{yx}.
+\]
+
+
+## $L^{+}$ directly
+
+[@fouss]
+
+\[
+S=L^{+}.
+\]
+$L^{+}$ provides a direct measure of similarity, as its elements are the inner products of vectors from an Euclidean space, which preserves Average Commute Time between nodes, see [@fouss] for details.
+
+
+## Matrix Forest Index
+
+[@mfi]
+
+\[
+S=(I+L)^{-1}.
+\]
+Matrix Forest Index can be understood as  the ratio of the number of spanning rooted forest such that nodes $x$ and $y$ belong to the same tree rooted at $x$ to all spanning rooted forests of the network, see [@mfi].
+
+
+# Quasi--local methods
+
+
+## Shortest Paths (Graph distance)
+
+\begin{equation}
+s_{xy}=\left\{ 
+\begin{array}{ll}
+\infty & \textrm{if $x= y$}\\
+ 0 & \textrm{if $x$ and $y$ are not connected}\\
+\frac{1}{p_{xy}} & \textrm{in other cases}
+\end{array} \right.
+\end{equation}
+
+where $\{p_{xy}\}=\min \{l:\text{path}_{xy}^{<l>}\textrm{ exists}\}$ is the length of the shortest path connecting $x$ and $y$.
+
+## Local Path Index 
+
+[@zhou2009]
+
+\[
+S=A^2+\epsilon A^3,
+\]
+where $\epsilon$ is a free parameter. This measure benefits from more information than simple common neighbours, as it looks on neighbours of second order, but at the same time is still fairly inexpensive to compute.
+
+# Acknowledgements {-}
+
+Authors thank (Polish) [National Science Centre](https://ncn.gov.pl) for
+support through SONATA grant 2012/07/D/HS6/01971 for the project *Dynamics of
+Competition and Collaboration  in Science: Individual Strategies, Collaboration
+Networks, and Organizational Hierarchies* (http://recon.icm.edu.pl).
+
+# References {-}
+
+<script type="text/x-mathjax-config">
+   MathJax.Hub.Config({  "HTML-CSS": { minScaleAdjust: 125, availableFonts: [] }  });
+</script>
+
+
+
